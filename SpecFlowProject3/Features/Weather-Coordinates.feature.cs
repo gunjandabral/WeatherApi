@@ -19,40 +19,37 @@ namespace WeatherApi.Features
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("TechTalk.SpecFlow", "3.5.0.0")]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [NUnit.Framework.TestFixtureAttribute()]
-    [NUnit.Framework.DescriptionAttribute("WeatherData")]
-    public partial class WeatherDataFeature
+    [TechTalk.SpecRun.FeatureAttribute("WeatherData-Coordinates", Description="Following Scenarios get the weather data based on Latitude-Longitude", SourceFile="Features\\Weather-Coordinates.feature", SourceLine=0)]
+    public partial class WeatherData_CoordinatesFeature
     {
         
         private TechTalk.SpecFlow.ITestRunner testRunner;
         
         private string[] _featureTags = ((string[])(null));
         
-#line 1 "WeatherData.feature"
+#line 1 "Weather-Coordinates.feature"
 #line hidden
         
-        [NUnit.Framework.OneTimeSetUpAttribute()]
+        [TechTalk.SpecRun.FeatureInitialize()]
         public virtual void FeatureSetup()
         {
             testRunner = TechTalk.SpecFlow.TestRunnerManager.GetTestRunner();
-            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "WeatherData", "Following Scenarios get the weather data based on Latitude-Longitude and PostCode" +
-                    "", ProgrammingLanguage.CSharp, ((string[])(null)));
+            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "WeatherData-Coordinates", "Following Scenarios get the weather data based on Latitude-Longitude", ProgrammingLanguage.CSharp, ((string[])(null)));
             testRunner.OnFeatureStart(featureInfo);
         }
         
-        [NUnit.Framework.OneTimeTearDownAttribute()]
+        [TechTalk.SpecRun.FeatureCleanup()]
         public virtual void FeatureTearDown()
         {
             testRunner.OnFeatureEnd();
             testRunner = null;
         }
         
-        [NUnit.Framework.SetUpAttribute()]
         public virtual void TestInitialize()
         {
         }
         
-        [NUnit.Framework.TearDownAttribute()]
+        [TechTalk.SpecRun.ScenarioCleanup()]
         public virtual void TestTearDown()
         {
             testRunner.OnScenarioEnd();
@@ -61,7 +58,6 @@ namespace WeatherApi.Features
         public virtual void ScenarioInitialize(TechTalk.SpecFlow.ScenarioInfo scenarioInfo)
         {
             testRunner.OnScenarioInitialize(scenarioInfo);
-            testRunner.ScenarioContext.ScenarioContainer.RegisterInstanceAs<NUnit.Framework.TestContext>(NUnit.Framework.TestContext.CurrentContext);
         }
         
         public virtual void ScenarioStart()
@@ -74,17 +70,15 @@ namespace WeatherApi.Features
             testRunner.CollectScenarioErrors();
         }
         
-        [NUnit.Framework.TestAttribute()]
-        [NUnit.Framework.DescriptionAttribute("Weather Data based for a non-authenticated user")]
-        [NUnit.Framework.TestCaseAttribute("Sydney", "-33.86", "151.21", null)]
-        public virtual void WeatherDataBasedForANon_AuthenticatedUser(string comments, string latitude, string longitude, string[] exampleTags)
+        public virtual void WeatherDataBasedOnLatitudesAndLongitudes(string comments, string latitude, string longitude, string expectedResponse, string[] exampleTags)
         {
             string[] tagsOfScenario = exampleTags;
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             argumentsOfScenario.Add("Comments", comments);
             argumentsOfScenario.Add("Latitude", latitude);
             argumentsOfScenario.Add("Longitude", longitude);
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Weather Data based for a non-authenticated user", null, tagsOfScenario, argumentsOfScenario);
+            argumentsOfScenario.Add("ExpectedResponse", expectedResponse);
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Weather Data based on Latitudes and Longitudes", null, tagsOfScenario, argumentsOfScenario);
 #line 4
 this.ScenarioInitialize(scenarioInfo);
 #line hidden
@@ -106,62 +100,12 @@ this.ScenarioInitialize(scenarioInfo);
             {
                 this.ScenarioStart();
 #line 5
-testRunner.Given("I am a user who wants to get the weather details using < PostalCode > and < Count" +
-                        "ryCode >", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 6
-testRunner.When("I look up the weather forecast as a non-authenticated user", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
-#line 7
-testRunner.Then("the Api response code should be \'Forbidden\'", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-            }
-            this.ScenarioCleanup();
-        }
-        
-        [NUnit.Framework.TestAttribute()]
-        [NUnit.Framework.DescriptionAttribute("Weather Data based on Latitudes and Longitudes")]
-        [NUnit.Framework.TestCaseAttribute("Sydney", "-33.86", "151.21", "OK", null)]
-        [NUnit.Framework.TestCaseAttribute("Tokyo", "35.65", "139.74", "OK", null)]
-        [NUnit.Framework.TestCaseAttribute("Sydney", "", "151.21", "BadRequest", null)]
-        [NUnit.Framework.TestCaseAttribute("Sydney", "-33.86", "", "BadRequest", null)]
-        [NUnit.Framework.TestCaseAttribute("Sydney", "", "", "BadRequest", null)]
-        public virtual void WeatherDataBasedOnLatitudesAndLongitudes(string comments, string latitude, string longitude, string expectedResponse, string[] exampleTags)
-        {
-            string[] tagsOfScenario = exampleTags;
-            System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
-            argumentsOfScenario.Add("Comments", comments);
-            argumentsOfScenario.Add("Latitude", latitude);
-            argumentsOfScenario.Add("Longitude", longitude);
-            argumentsOfScenario.Add("ExpectedResponse", expectedResponse);
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Weather Data based on Latitudes and Longitudes", null, tagsOfScenario, argumentsOfScenario);
-#line 13
-this.ScenarioInitialize(scenarioInfo);
-#line hidden
-            bool isScenarioIgnored = default(bool);
-            bool isFeatureIgnored = default(bool);
-            if ((tagsOfScenario != null))
-            {
-                isScenarioIgnored = tagsOfScenario.Where(__entry => __entry != null).Where(__entry => String.Equals(__entry, "ignore", StringComparison.CurrentCultureIgnoreCase)).Any();
-            }
-            if ((this._featureTags != null))
-            {
-                isFeatureIgnored = this._featureTags.Where(__entry => __entry != null).Where(__entry => String.Equals(__entry, "ignore", StringComparison.CurrentCultureIgnoreCase)).Any();
-            }
-            if ((isScenarioIgnored || isFeatureIgnored))
-            {
-                testRunner.SkipScenario();
-            }
-            else
-            {
-                this.ScenarioStart();
-#line 14
 testRunner.Given(string.Format("I am a user who wants to get the weather details based on its {0} and {1}", latitude, longitude), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
 #line hidden
-#line 15
+#line 6
 testRunner.When("I look up the weather forecast as an authenticated user", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line hidden
-#line 16
+#line 7
 testRunner.Then(string.Format("the Api response code should be \'{0}\'", expectedResponse), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
                 TechTalk.SpecFlow.Table table1 = new TechTalk.SpecFlow.Table(new string[] {
@@ -174,8 +118,9 @@ testRunner.Then(string.Format("the Api response code should be \'{0}\'", expecte
                             "date_time",
                             "temp"});
                 table1.AddRow(new string[] {
-                            "All parameters are approximations. Values in this tble are not utilized but can b" +
-                                "e used with small change",
+                            "All parameters are approximations. Values in this table are not utilized but can " +
+                                "be used with small change. There is also a bug such that sunrise time is after s" +
+                                "unset",
                             "0",
                             "0",
                             "0",
@@ -183,29 +128,39 @@ testRunner.Then(string.Format("the Api response code should be \'{0}\'", expecte
                             "",
                             "0",
                             "0"});
-#line 17
+#line 8
 testRunner.And("I receive the weather forecast with the following parameters", ((string)(null)), table1, "And ");
 #line hidden
             }
             this.ScenarioCleanup();
         }
         
-        [NUnit.Framework.TestAttribute()]
-        [NUnit.Framework.DescriptionAttribute("Weather Data based on PostCode")]
-        [NUnit.Framework.TestCaseAttribute("Only Postal Code", "2000", "", "OK", null)]
-        [NUnit.Framework.TestCaseAttribute("Postal Code and correct Country Code", "2000", "AU", "OK", null)]
-        [NUnit.Framework.TestCaseAttribute("Postal Code and wrong Country Code. There is a potential bug here", "2000", "JP", "NoContent", null)]
-        [NUnit.Framework.TestCaseAttribute("Neither a Post Code nor a Country Code", "", "", "BadRequest", null)]
-        public virtual void WeatherDataBasedOnPostCode(string comments, string postalCode, string countryCode, string expectedResponse, string[] exampleTags)
+        [TechTalk.SpecRun.ScenarioAttribute("Weather Data based on Latitudes and Longitudes, Sydney", SourceLine=13)]
+        public virtual void WeatherDataBasedOnLatitudesAndLongitudes_Sydney()
+        {
+#line 4
+this.WeatherDataBasedOnLatitudesAndLongitudes("Sydney", "-33.86", "151.21", "OK", ((string[])(null)));
+#line hidden
+        }
+        
+        [TechTalk.SpecRun.ScenarioAttribute("Weather Data based on Latitudes and Longitudes, Tokyo", SourceLine=13)]
+        public virtual void WeatherDataBasedOnLatitudesAndLongitudes_Tokyo()
+        {
+#line 4
+this.WeatherDataBasedOnLatitudesAndLongitudes("Tokyo", "35.65", "139.74", "OK", ((string[])(null)));
+#line hidden
+        }
+        
+        public virtual void WeatherDataBasedOnLatitudesAndLongitudes_NegativeScenarios(string comments, string latitude, string longitude, string expectedResponse, string[] exampleTags)
         {
             string[] tagsOfScenario = exampleTags;
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             argumentsOfScenario.Add("Comments", comments);
-            argumentsOfScenario.Add("PostalCode", postalCode);
-            argumentsOfScenario.Add("CountryCode", countryCode);
+            argumentsOfScenario.Add("Latitude", latitude);
+            argumentsOfScenario.Add("Longitude", longitude);
             argumentsOfScenario.Add("ExpectedResponse", expectedResponse);
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Weather Data based on PostCode", null, tagsOfScenario, argumentsOfScenario);
-#line 30
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Weather Data based on Latitudes and Longitudes - Negative Scenarios", null, tagsOfScenario, argumentsOfScenario);
+#line 18
 this.ScenarioInitialize(scenarioInfo);
 #line hidden
             bool isScenarioIgnored = default(bool);
@@ -225,29 +180,41 @@ this.ScenarioInitialize(scenarioInfo);
             else
             {
                 this.ScenarioStart();
-#line 31
-testRunner.Given(string.Format("I am a user who wants to get the weather details using {0} and {1}", postalCode, countryCode), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+#line 19
+testRunner.Given(string.Format("I am a user who wants to get the weather details based on its {0} and {1}", latitude, longitude), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
 #line hidden
-#line 32
+#line 20
 testRunner.When("I look up the weather forecast as an authenticated user", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line hidden
-#line 33
+#line 21
 testRunner.Then(string.Format("the Api response code should be \'{0}\'", expectedResponse), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-                TechTalk.SpecFlow.Table table2 = new TechTalk.SpecFlow.Table(new string[] {
-                            "Comments",
-                            "clouds",
-                            "snow"});
-                table2.AddRow(new string[] {
-                            "All parameters are approximations. Values in this tble are not utilized but can b" +
-                                "e used with small change",
-                            "0",
-                            "0"});
-#line 34
-testRunner.And("I receive the weather forecast with the following parameters", ((string)(null)), table2, "And ");
 #line hidden
             }
             this.ScenarioCleanup();
+        }
+        
+        [TechTalk.SpecRun.ScenarioAttribute("Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0", SourceLine=24)]
+        public virtual void WeatherDataBasedOnLatitudesAndLongitudes_NegativeScenarios_Variant0()
+        {
+#line 18
+this.WeatherDataBasedOnLatitudesAndLongitudes_NegativeScenarios("Sydney", "", "151.21", "BadRequest", ((string[])(null)));
+#line hidden
+        }
+        
+        [TechTalk.SpecRun.ScenarioAttribute("Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1", SourceLine=24)]
+        public virtual void WeatherDataBasedOnLatitudesAndLongitudes_NegativeScenarios_Variant1()
+        {
+#line 18
+this.WeatherDataBasedOnLatitudesAndLongitudes_NegativeScenarios("Sydney", "-33.86", "", "BadRequest", ((string[])(null)));
+#line hidden
+        }
+        
+        [TechTalk.SpecRun.ScenarioAttribute("Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2", SourceLine=24)]
+        public virtual void WeatherDataBasedOnLatitudesAndLongitudes_NegativeScenarios_Variant2()
+        {
+#line 18
+this.WeatherDataBasedOnLatitudesAndLongitudes_NegativeScenarios("Sydney", "", "", "BadRequest", ((string[])(null)));
+#line hidden
         }
     }
 }

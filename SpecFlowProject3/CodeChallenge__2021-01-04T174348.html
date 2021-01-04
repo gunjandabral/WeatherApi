@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+		<title>Unnamed project Test Execution Report</title>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.2.min.js"></script>
+        <script type="text/javascript">
+            /**
+            * jQuery.fn.sortElements
+            * --------------
+            * #author James Padolsey (http://james.padolsey.com)
+            * #version 0.11
+            * #updated 18-MAR-2010
+            * #url https://raw.github.com/jamespadolsey/jQuery-Plugins/master/sortElements/jquery.sortElements.js
+            * --------------
+            * #param Function comparator:
+            *   Exactly the same behaviour as [1,2,3].sort(comparator)
+            *   
+            * #param Function getSortable
+            *   A function that should return the element that is
+            *   to be sorted. The comparator will run on the
+            *   current collection, but you may want the actual
+            *   resulting sort to occur on a parent or another
+            *   associated element.
+            *   
+            *   E.g. $('td').sortElements(comparator, function(){
+            *      return this.parentNode; 
+            *   })
+            *   
+            *   The <td>'s parent (<tr>) will be sorted instead
+            *   of the <td> itself.
+            */
+            jQuery.fn.sortElements = (function () {
+
+                var sort = [].sort;
+
+                return function (comparator, getSortable) {
+
+                    getSortable = getSortable || function () { return this; };
+
+                    var placements = this.map(function () {
+
+                        var sortElement = getSortable.call(this),
+                parentNode = sortElement.parentNode,
+
+                        // Since the element itself will change position, we have
+                        // to have some way of storing it's original position in
+                        // the DOM. The easiest way is to have a 'flag' node:
+                nextSibling = parentNode.insertBefore(
+                    document.createTextNode(''),
+                    sortElement.nextSibling
+                );
+
+                        return function () {
+
+                            if (parentNode === this) {
+                                throw new Error(
+                        "You can't sort elements if any one is a descendant of another."
+                    );
+                            }
+
+                            // Insert before flag:
+                            parentNode.insertBefore(this, nextSibling);
+                            // Remove flag:
+                            parentNode.removeChild(nextSibling);
+
+                        };
+
+                    });
+
+                    return sort.call(this, comparator).each(function (i) {
+                        placements[i].call(getSortable.call(this));
+                    });
+
+                };
+
+            })();
+        </script>
+        <script type="text/javascript">
+            jQuery.fn.setBarSizes = (function () {
+                return function (metricName, maxBarSize, min) {
+                    var max = Math.max.apply(Math, $.makeArray($(this).map(function () { return Number($(this).attr('data-sr-' + metricName)); })));
+                    var scale = 1.0;
+                    while (max > 0.0 && max <= 10.0) {
+                        scale = scale * 10.0;
+                        max = max * 10.0;
+                    }
+                    max = (Math.ceil(max / 2) * 2) / scale;
+
+                    this.each(function () {
+                        var barAnchor = $(this).find('a');
+                        var actual = $(this).attr('data-sr-' + metricName);
+                        var newHeight = Math.max(Math.round(maxBarSize * (actual - min) / (max - min)), 2);
+                        barAnchor.css({ height: newHeight });
+                    });
+
+                    var unit = "";
+                    if (metricName.substr(metricName.length - 4, 4) === "time")
+                        unit = "s";
+
+                    $('#testview .scale-min-label').each(function () {
+                        $(this).text(min.toString() + unit);
+                    });
+                    $('#testview .scale-max-label').each(function () {
+                        $(this).text(max.toString() + unit);
+                    });
+                    var mid = max / 2;
+                    $('#testview .scale-mid-label').each(function () {
+                        $(this).text(mid.toString() + unit);
+                    });
+                };
+            })();
+
+            function getComparer(metricName, isDesc) {
+                return function (a, b) {
+                    var aNumber = Number($(a).attr('data-sr-' + metricName));
+                    var bNumber = Number($(b).attr('data-sr-' + metricName));
+                    var result = aNumber > bNumber ? 1 : (aNumber < bNumber ? -1 : 0);
+                    if (isDesc)
+                        result = -1 * result;
+
+                    if (result == 0 && metricName != "order")
+                        result = getComparer("order", false)(a, b);
+
+                    return result;
+                };
+            }
+
+            var currentSort = "";
+            function doSort(allowToggleDesc) {
+                var newSort = $("input[name='barSortOrder']:checked").val();
+                if (allowToggleDesc && currentSort == newSort) {
+                    $('#barSortDesc').click();
+                    doSort(false);
+                    return;
+                }
+                currentSort = newSort;
+                $('#testview td.testview-item').sortElements(getComparer(newSort, $('#barSortDesc').is(':checked')));
+            }
+
+
+            function doSetHeights(allowSort) {
+                var selectedMetric = $("input[name='barHeight']:checked").val();
+                $('#testview td.testview-item').setBarSizes(selectedMetric, 60, 0.0);
+
+                if (allowSort && currentSort != selectedMetric) {
+                    var $radios = $("input[name='barSortOrder']");
+                    $radios.filter('[value=' + selectedMetric + ']').attr('checked', true);
+                    $("#barSortDesc").attr("checked", [true]);
+                    doSort(false);
+                }
+            }
+
+            $(document).ready(function () {
+                $("input[name='barSortOrder']").click(function () { doSort(true); return true; });
+                $("input[name='barSortDesc']").change(function () { doSort(false); });
+                $("input[name='barHeight']").change(function () { doSetHeights(true); });
+
+                doSort(false);
+                doSetHeights(false);
+
+                $("div.scrollable").css({ 'overflow': 'auto' });
+            });
+        </script>
+
+        <style type="text/css">
+            body 
+            {
+                color: #000000;
+                font-family: Arial,Liberation Sans,DejaVu Sans,sans-serif;
+                line-height: 130%;
+            }
+            h1 {
+                font-family: Trebuchet MS,Liberation Sans,DejaVu Sans,sans-serif;
+                font-size: 170%;
+                font-weight: bold;
+            }            
+            h2 {
+                font-family: Trebuchet MS,Liberation Sans,DejaVu Sans,sans-serif;
+                font-size: 130%;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }            
+            h3 {
+                font-family: Trebuchet MS,Liberation Sans,DejaVu Sans,sans-serif;
+                font-size: 120%;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }            
+            a.bar
+            {
+                text-decoration: none;
+                display: block;
+                line-height: 1px;
+            }
+            .description
+            {
+                font-style: italic;
+            }
+            .log 
+            {
+                width: 600px;
+                white-space: pre-wrap;
+                display: block;
+                margin: 0px;
+            }
+            .errorMessage 
+            {
+                width: 600px;
+                color: Red;
+                font-weight: bold;
+            }
+            .stackTrace 
+            {
+                width: 600px;
+                white-space: pre-wrap;
+                font-style: italic;
+                color: Red;
+                display: block;
+            }
+            table.testEvents
+            {
+                border: solid 1px #e8eef4;
+                border-collapse: collapse;
+            }
+            table.testEvents td
+            {
+                vertical-align: top;
+                padding: 5px;
+                border: solid 1px #e8eef4;
+            }
+            table.testEvents th
+            {
+                padding: 6px 5px;
+                text-align: left;
+                background-color: #e8eef4;
+                border: solid 1px #e8eef4;                
+            }
+            .comment
+            {
+                font-style: italic;
+                font-size: smaller;
+            }
+            .startupBar
+            {
+                background-color: #EEEEEE;
+                cursor: default;
+            }
+            
+            .colorSucceeded
+            {
+                background-color: #90ED7B;
+            }
+            .colorIgnored
+            {
+                background-color: #FFFF85;
+            }
+            .colorPending
+            {
+                background-color: #D47BED;
+            }
+            .colorNothingToRun
+            {
+                background-color: #CCCCFF;
+            }
+            .colorSkipped
+            {
+                background-color: #CCCCFF;
+            }
+            .colorInconclusive
+            {
+                background-color: #7BEDED;
+            }
+            .colorCleanupFailed
+            {
+                background-color: #FFCCCC;
+            }
+            .colorRandomlyFailed
+            {
+                background-color: #EDB07B;
+            }
+            .colorFailed
+            {
+                background-color: #ED5F5F;
+            }
+            .colorInitializationFailed
+            {
+                background-color: #FF0000;
+            }
+            .colorFrameworkError
+            {
+                background-color: #FF0000;
+            }
+            ul.subNodeLinks
+            {
+                padding-left: 20px;
+                margin: 0px;
+            }
+            ul.subNodeLinks li
+            {
+                list-style: none;
+            }
+            
+            /* views general */
+            div.scrollable
+            {
+                /*overflow: auto; - thsi has to be set from js, because of an IE9 bug */
+            }
+            div.viewbox
+            {
+                position: relative;
+                border: 3px solid #e8eef4;
+            }
+            div.viewbox table
+            {
+                border: 0px;
+            }
+                        
+            /* testview */
+            #testview
+            {
+                padding-top: 23px;
+            }
+            
+            table.testview-items td
+            {
+                vertical-align: bottom;
+                padding: 0px 1px 0px 1px;
+            }
+            td.right-padding, td.left-padding
+            {
+                width: 25px;
+                min-width: 25px;
+            }
+            table.testview-items a.bar
+            {
+                width: 5px;
+            }
+            table.testview-items tr.testview-items-row
+            {
+                height: 60px;
+            }
+            
+            /* scale */
+            table.vertical-scale 
+            {
+                position: absolute;
+                top: 23px;
+                left: 0px;
+                width: 100%;
+                z-index: -100;
+            }
+            table.vertical-scale td, tr.horizontal-scale td
+            {
+                font-size: 60%;
+                line-height: normal;
+            }
+            table.vertical-scale tr.scale-max, table.vertical-scale tr.scale-mid 
+            {
+                height: 30px;
+            }
+            tr.horizontal-scale, table.vertical-scale tr.scale-min 
+            {
+                height: 12px;
+            }
+            
+            td.scale-max-label, td.scale-mid-label, td.scale-min-label
+            {
+                border-top: solid 1px #E6E6E6;
+                text-align: left;
+                vertical-align: top;
+            }
+            td.scale-10-label
+            {
+                border-left: solid 1px #E6E6E6;
+                text-align: left;
+                vertical-align: bottom;
+                padding-left: 1px;
+            }
+            tr.scale-mid td, tr.scale-min td, tr.scale-max td
+            {
+                border-top: solid 1px #E6E6E6;
+            }
+           
+            
+            /* bar-control */
+            #bar-control
+            {
+                font-size: 60%;
+                line-height: normal;
+                position: absolute;
+                right: 0px;
+                top: 0px;
+            }
+            #bar-control label
+            {
+                font-weight: bold;
+                vertical-align: middle;
+            }
+            #bar-control .option
+            {
+                vertical-align: middle;
+                text-transform: lowercase;
+            }
+            #bar-control input[type="checkbox"]
+            {
+                padding: 0 2px 0 3px;
+            }
+            #bar-control input
+            {
+                vertical-align: top;
+                height: 12px;
+                margin: 0px;
+                padding: 0px;
+            }
+            #bar-control div
+            {
+                float: right;
+                margin: 3px 5px 3px 5px;
+            }
+
+            /* timeline view */
+            #timelineview
+            {
+                padding-top: 5px;
+            }
+            table.timelineview a
+            {
+                height: 20px;
+            }
+            table.timelineview td
+            {
+                vertical-align: bottom;
+                padding: 0px 1px 0px 0px;
+                border: 0px;
+            }
+            tr.thread-items-row
+            {
+                height: 25px;
+            }
+            tr.thread-items-row td
+            {
+                vertical-align: bottom;
+            }
+            td.thread-label
+            {
+                padding: 0px 6px 0px 6px;
+                text-align: right;
+                line-height: 18px;
+                vertical-align: bottom;
+            }
+            th.thread-label
+            {
+                padding: 3px 6px 0px 6px;
+                line-height: 18px;
+                text-align: left;
+                vertical-align: bottom;
+            }
+        </style>
+	</head>
+	<body>
+        <h1>Unnamed project Test Execution Report</h1>
+        
+    <ul>
+        <li>Project: Unnamed project</li>
+        <li>Configuration: </li>
+        <li>Test Assemblies: C:\WeatherApi\SpecFlowProject3\bin\Debug\netcoreapp3.1\WeatherApi.dll</li>
+        <li>Start Time: 04/01/2021 5:43:48 PM</li>
+        <li>Duration: 00:00:25.2072705</li>
+        <li>Test Threads: 1</li>
+    </ul>
+
+
+        <h2>Result: 3 failed</h2>
+        <table class="testEvents">
+                <tr>
+        <th colspan="2">Success rate</th>
+        <th>Tests</th>
+        <th>Succeeded</th>
+        <th>Failed</th>
+        <th>Pending</th>
+        <th>Ignored</th>
+        <th>Skipped</th>
+    </tr>
+
+                <td>
+            67%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 132px;" 
+           title="6 succeeded" 
+                   ></a>
+    </td>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 66px;" 
+           title="3 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>9 (test executions: 13)</td>
+    <td>6</td>
+    <td>3</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+
+        </table>
+        
+        <h2>Test Timeline Summary</h2>
+
+        <div id="timelineview" class="viewbox">
+            <div class="scrollable">
+                <table cellpadding="0" cellspacing="0">
+                    <tr>
+                        <th class="thread-label" colspan="2">thread</th>
+                    </tr>
+                        <tr class="thread-items-row">
+                            <td class="thread-label" title="Machine: DESKTOP-9IAVOIU">#0</td>
+                            <td colspan="2">
+                                <table class="timelineview" cellpadding="0" cellspacing="0">
+                                    <tr>
+
+                                            <td>
+        <a
+            class="bar startupBar" 
+            style="width: 3px;" 
+                title="test thread startup" 
+        >&nbsp;</a>
+    </td>
+
+    <td>
+        <a
+            class="bar colorFailed" 
+            style="width: 24px;" 
+                title="Weather Data based on Latitudes and Longitudes, Sydney (in WeatherData-Coordinates)" 
+                href="#t-1680262139.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorFailed" 
+            style="width: 4px;" 
+                title="Weather Data based on Latitudes and Longitudes, Sydney (in WeatherData-Coordinates) retry #1" 
+                href="#t-1680262139.1"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorFailed" 
+            style="width: 3px;" 
+                title="Weather Data based on Latitudes and Longitudes, Sydney (in WeatherData-Coordinates) retry #2" 
+                href="#t-1680262139.2"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorFailed" 
+            style="width: 3px;" 
+                title="Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherData-Coordinates)" 
+                href="#t-49304721.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorFailed" 
+            style="width: 3px;" 
+                title="Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherData-Coordinates) retry #1" 
+                href="#t-49304721.1"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorFailed" 
+            style="width: 3px;" 
+                title="Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherData-Coordinates) retry #2" 
+                href="#t-49304721.2"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorSucceeded" 
+            style="width: 3px;" 
+                title="Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0 (in WeatherData-Coordinates)" 
+                href="#t1119696595.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorSucceeded" 
+            style="width: 3px;" 
+                title="Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1 (in WeatherData-Coordinates)" 
+                href="#t-1478196300.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorSucceeded" 
+            style="width: 3px;" 
+                title="Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2 (in WeatherData-Coordinates)" 
+                href="#t-1611506203.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorSucceeded" 
+            style="width: 3px;" 
+                title="Weather Data based for a non-authenticated user, Sydney (in WeatherData - NonAuthenticatedUser)" 
+                href="#t1984894362.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorSucceeded" 
+            style="width: 5px;" 
+                title="Weather Data based on PostalCode, Only Postal Code (in WeatherData-PostalCode)" 
+                href="#t-353816698.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorSucceeded" 
+            style="width: 13px;" 
+                title="Weather Data based on PostalCode, Postal Code and correct Country Code (in WeatherData-PostalCode)" 
+                href="#t-189205882.0"
+        >&nbsp;</a>
+    </td>
+    <td>
+        <a
+            class="bar colorFailed" 
+            style="width: 4px;" 
+                title="Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here (in WeatherData-PostalCode)" 
+                href="#t-127581190.0"
+        >&nbsp;</a>
+    </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    <tr class="horizontal-scale">
+                        <td>&nbsp;</td>
+                            <td class="scale-10-label" style="width: 72px;min-width: 72px;">0s</td>
+                        <td class="scale-10-label">20s</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        
+    <h2>Test Result View</h2>
+    <div id="testview" class="viewbox">
+        <div id="bar-control">
+            <div id="bar-control-sort">
+                <label>sort by:</label>
+                <span class="option"><input type="radio" name="barSortOrder" value="exectime" />Time</span>
+                <span class="option"><input type="radio" name="barSortOrder" value="acttime" />Act Time</span>
+                <span class="option"><input type="radio" name="barSortOrder" value="order" />Execution</span>
+                <span class="option"><input type="radio" name="barSortOrder" value="rescode" checked="checked" />Result</span>
+                <span class="option"><input type="checkbox" name="barSortDesc" id="barSortDesc" checked="checked" />desc</span>
+            </div>
+            <div id="bar-control-heights">
+                <label>heights:</label>
+                <span class="option"><input type="radio" checked="checked" name="barHeight" value="exectime" />Time</span>
+                <span class="option"><input type="radio" name="barHeight" value="acttime" />Act Time</span>
+            </div>
+        </div>
+        <table class="vertical-scale" cellpadding="0" cellspacing="0">
+            <tr class="scale-max">
+                <td class="left-padding scale-max-label">&nbsp;</td>
+                <td colspan="13">&nbsp;</td>
+                <td class="right-padding">&nbsp;</td>
+            </tr>
+            <tr class="scale-mid">
+                <td class="left-padding scale-mid-label">&nbsp;</td>
+                <td colspan="13">&nbsp;</td>
+                <td class="right-padding">&nbsp;</td>
+            </tr>
+            <tr class="scale-min">
+                <td class="left-padding scale-min-label">&nbsp;</td>
+                <td colspan="13">&nbsp;</td>
+                <td class="right-padding">&nbsp;</td>
+            </tr>
+        </table>
+        <div class="scrollable">
+            <table class="testview-items" cellpadding="0" cellspacing="0">
+                <tr class="testview-items-row">
+                    <td class="left-padding">&nbsp;</td>
+    <td class="testview-item" 
+        data-sr-exectime="1.0194543" data-sr-rescode="110" data-sr-order="6" data-sr-acttime="1.006">
+        <a
+            class="bar colorSucceeded" 
+            style="height: 16px;"
+            title="Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0 (in WeatherData-Coordinates)"
+            href="#t1119696595.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.2483134" data-sr-rescode="110" data-sr-order="7" data-sr-acttime="1.23">
+        <a
+            class="bar colorSucceeded" 
+            style="height: 19px;"
+            title="Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1 (in WeatherData-Coordinates)"
+            href="#t-1478196300.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.0257142" data-sr-rescode="110" data-sr-order="8" data-sr-acttime="1.011">
+        <a
+            class="bar colorSucceeded" 
+            style="height: 16px;"
+            title="Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2 (in WeatherData-Coordinates)"
+            href="#t-1611506203.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.0189957" data-sr-rescode="110" data-sr-order="9" data-sr-acttime="0.997">
+        <a
+            class="bar colorSucceeded" 
+            style="height: 16px;"
+            title="Weather Data based for a non-authenticated user, Sydney (in WeatherData - NonAuthenticatedUser)"
+            href="#t1984894362.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="2.0165906" data-sr-rescode="110" data-sr-order="10" data-sr-acttime="1.99">
+        <a
+            class="bar colorSucceeded" 
+            style="height: 31px;"
+            title="Weather Data based on PostalCode, Only Postal Code (in WeatherData-PostalCode)"
+            href="#t-353816698.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="3.7096618" data-sr-rescode="110" data-sr-order="11" data-sr-acttime="3.694">
+        <a
+            class="bar colorSucceeded" 
+            style="height: 57px;"
+            title="Weather Data based on PostalCode, Postal Code and correct Country Code (in WeatherData-PostalCode)"
+            href="#t-189205882.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="3.9079762" data-sr-rescode="540" data-sr-order="0" data-sr-acttime="2.781">
+        <a
+            class="bar colorFailed" 
+            style="height: 60px;"
+            title="Weather Data based on Latitudes and Longitudes, Sydney (in WeatherData-Coordinates)"
+            href="#t-1680262139.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.1512583" data-sr-rescode="540" data-sr-order="1" data-sr-acttime="1.023">
+        <a
+            class="bar colorFailed" 
+            style="height: 18px;"
+            title="Weather Data based on Latitudes and Longitudes, Sydney (in WeatherData-Coordinates) retry #1"
+            href="#t-1680262139.1">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.0873829" data-sr-rescode="540" data-sr-order="2" data-sr-acttime="1.021">
+        <a
+            class="bar colorFailed" 
+            style="height: 17px;"
+            title="Weather Data based on Latitudes and Longitudes, Sydney (in WeatherData-Coordinates) retry #2"
+            href="#t-1680262139.2">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.1339538" data-sr-rescode="540" data-sr-order="3" data-sr-acttime="1.09">
+        <a
+            class="bar colorFailed" 
+            style="height: 17px;"
+            title="Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherData-Coordinates)"
+            href="#t-49304721.0">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.1049686" data-sr-rescode="540" data-sr-order="4" data-sr-acttime="1.065">
+        <a
+            class="bar colorFailed" 
+            style="height: 17px;"
+            title="Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherData-Coordinates) retry #1"
+            href="#t-49304721.1">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.0531834" data-sr-rescode="540" data-sr-order="5" data-sr-acttime="0.986">
+        <a
+            class="bar colorFailed" 
+            style="height: 16px;"
+            title="Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherData-Coordinates) retry #2"
+            href="#t-49304721.2">&nbsp;</a>
+    </td>
+    <td class="testview-item" 
+        data-sr-exectime="1.4191082" data-sr-rescode="540" data-sr-order="12" data-sr-acttime="0.974">
+        <a
+            class="bar colorFailed" 
+            style="height: 22px;"
+            title="Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here (in WeatherData-PostalCode)"
+            href="#t-127581190.0">&nbsp;</a>
+    </td>
+                    <td class="right-padding">&nbsp;</td>
+                </tr>
+                <tr class="horizontal-scale">
+                    <td class="left-padding">&nbsp;</td>
+                    <td colspan="10">&nbsp;</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+        
+        
+    <h2>Feature Summary</h2>
+    <table class="testEvents">
+            <tr>
+            <th>Feature</th>
+        <th colspan="2">Success rate</th>
+        <th>Tests</th>
+        <th>Succeeded</th>
+        <th>Failed</th>
+        <th>Pending</th>
+        <th>Ignored</th>
+        <th>Skipped</th>
+            <th>Duration</th>
+    </tr>
+
+
+            <tr>
+                <td><a href="#f-1958737677">WeatherData - NonAuthenticatedUser</a></td>
+                    <td>
+            100%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 199px;" 
+           title="1 succeeded" 
+                   ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:01.0189957</td>
+
+            </tr>
+            <tr>
+                <td><a href="#f-247325531">WeatherData-Coordinates</a></td>
+                    <td>
+            33%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 119px;" 
+           title="3 succeeded" 
+                   ></a>
+    </td>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 239px;" 
+           title="2 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>5 (test executions: 9)</td>
+    <td>3</td>
+    <td>6</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:12.7322051</td>
+
+            </tr>
+            <tr>
+                <td><a href="#f-1653465744">WeatherData-PostalCode</a></td>
+                    <td>
+            67%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 132px;" 
+           title="2 succeeded" 
+                   ></a>
+    </td>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 66px;" 
+           title="1 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>3</td>
+    <td>2</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:07.1453606</td>
+
+            </tr>
+    </table>
+
+
+        <a name="error_summary" />
+        <h2>Error Summary</h2>
+        <table class="testEvents">
+                <tr>
+            <th>Test</th>
+        <th colspan="2">Success rate</th>
+        <th>Tests</th>
+        <th>Succeeded</th>
+        <th>Failed</th>
+        <th>Pending</th>
+        <th>Ignored</th>
+        <th>Skipped</th>
+    </tr>
+
+                <tr>
+                    <td>
+                        <a href="#t-1680262139.0">Weather Data based on Latitudes and Longitudes, Sydney (in WeatherApi, WeatherData-Coordinates)</a>
+                            <a href="#t-1680262139.1">retry #1</a>
+                            <a href="#t-1680262139.2">retry #2</a>
+                    </td>
+                        <td>
+            0%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 599px;" 
+           title="1 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1 (test executions: 3)</td>
+    <td>0</td>
+    <td>3</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+
+                </tr>
+                <tr>
+                    <td colspan="9" style="padding-left: 20px;"><div class="errorMessage">Error:   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+, retry #1: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+, retry #2: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+</div></td>
+                </tr>
+                <tr>
+                    <td>
+                        <a href="#t-49304721.0">Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherApi, WeatherData-Coordinates)</a>
+                            <a href="#t-49304721.1">retry #1</a>
+                            <a href="#t-49304721.2">retry #2</a>
+                    </td>
+                        <td>
+            0%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 599px;" 
+           title="1 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1 (test executions: 3)</td>
+    <td>0</td>
+    <td>3</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+
+                </tr>
+                <tr>
+                    <td colspan="9" style="padding-left: 20px;"><div class="errorMessage">Error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+, retry #1: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+, retry #2: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  6)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+</div></td>
+                </tr>
+                <tr>
+                    <td>
+                        <a href="#t-127581190.0">Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here (in WeatherApi, WeatherData-PostalCode)</a>
+                    </td>
+                        <td>
+            0%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 199px;" 
+           title="1 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>0</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+
+                </tr>
+                <tr>
+                    <td colspan="9" style="padding-left: 20px;"><div class="errorMessage">Error: Expected apiResult.StatusCode to be NoContent, but found OK.</div></td>
+                </tr>
+        </table>
+
+        <h2>Scenario Summary</h2>
+            <a name="f-1958737677" />
+            <h3>Feature: WeatherData - NonAuthenticatedUser</h3>
+                <div class="description"><pre>Following Scenarios tries to fetch the weather data for a Non Authenticated User</pre>
+                </div>
+            <table class="testEvents">
+                    <tr>
+            <th>Test</th>
+        <th colspan="2">Success rate</th>
+        <th>Tests</th>
+        <th>Succeeded</th>
+        <th>Failed</th>
+        <th>Pending</th>
+        <th>Ignored</th>
+        <th>Skipped</th>
+            <th>Duration</th>
+    </tr>
+
+                    <tr>
+                        <td>
+                                    <a href="#t1984894362.0">Scenario: Weather Data based for a non-authenticated user, Sydney</a>
+
+                        </td>
+                        
+                            <td>
+            100%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 199px;" 
+           title="1 succeeded" 
+                   ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:01.0189957</td>
+
+                        
+                    </tr>
+            </table>
+            <a name="f-247325531" />
+            <h3>Feature: WeatherData-Coordinates</h3>
+                <div class="description"><pre>Following Scenarios get the weather data based on Latitude-Longitude</pre>
+                </div>
+            <table class="testEvents">
+                    <tr>
+            <th>Test</th>
+        <th colspan="2">Success rate</th>
+        <th>Tests</th>
+        <th>Succeeded</th>
+        <th>Failed</th>
+        <th>Pending</th>
+        <th>Ignored</th>
+        <th>Skipped</th>
+            <th>Duration</th>
+    </tr>
+
+                    <tr>
+                        <td>
+                                    <a href="#t-1680262139.0">Scenario: Weather Data based on Latitudes and Longitudes, Sydney</a>
+            <a href="#t-1680262139.1">retry #1</a>
+            <a href="#t-1680262139.2">retry #2</a>
+
+                        </td>
+                        
+                            <td>
+            0%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 599px;" 
+           title="1 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1 (test executions: 3)</td>
+    <td>0</td>
+    <td>3</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:06.1466174</td>
+
+                        
+                    </tr>
+                    <tr>
+                        <td>
+                                    <a href="#t-49304721.0">Scenario: Weather Data based on Latitudes and Longitudes, Tokyo</a>
+            <a href="#t-49304721.1">retry #1</a>
+            <a href="#t-49304721.2">retry #2</a>
+
+                        </td>
+                        
+                            <td>
+            0%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 599px;" 
+           title="1 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1 (test executions: 3)</td>
+    <td>0</td>
+    <td>3</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:03.2921058</td>
+
+                        
+                    </tr>
+                    <tr>
+                        <td>
+                                    <a href="#t1119696595.0">Scenario: Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0</a>
+
+                        </td>
+                        
+                            <td>
+            100%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 199px;" 
+           title="1 succeeded" 
+                   ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:01.0194543</td>
+
+                        
+                    </tr>
+                    <tr>
+                        <td>
+                                    <a href="#t-1478196300.0">Scenario: Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1</a>
+
+                        </td>
+                        
+                            <td>
+            100%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 199px;" 
+           title="1 succeeded" 
+                   ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:01.2483134</td>
+
+                        
+                    </tr>
+                    <tr>
+                        <td>
+                                    <a href="#t-1611506203.0">Scenario: Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2</a>
+
+                        </td>
+                        
+                            <td>
+            100%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 199px;" 
+           title="1 succeeded" 
+                   ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:01.0257142</td>
+
+                        
+                    </tr>
+            </table>
+            <a name="f-1653465744" />
+            <h3>Feature: WeatherData-PostalCode</h3>
+                <div class="description"><pre>Following Scenarios get the weather data based on Postal Code </pre>
+                </div>
+            <table class="testEvents">
+                    <tr>
+            <th>Test</th>
+        <th colspan="2">Success rate</th>
+        <th>Tests</th>
+        <th>Succeeded</th>
+        <th>Failed</th>
+        <th>Pending</th>
+        <th>Ignored</th>
+        <th>Skipped</th>
+            <th>Duration</th>
+    </tr>
+
+                    <tr>
+                        <td>
+                                    <a href="#t-353816698.0">Scenario: Weather Data based on PostalCode, Only Postal Code</a>
+
+                        </td>
+                        
+                            <td>
+            100%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 199px;" 
+           title="1 succeeded" 
+                   ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:02.0165906</td>
+
+                        
+                    </tr>
+                    <tr>
+                        <td>
+                                    <a href="#t-189205882.0">Scenario: Weather Data based on PostalCode, Postal Code and correct Country Code</a>
+
+                        </td>
+                        
+                            <td>
+            100%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorSucceeded" 
+           style="width: 199px;" 
+           title="1 succeeded" 
+                   ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:03.7096618</td>
+
+                        
+                    </tr>
+                    <tr>
+                        <td>
+                                    <a href="#t-127581190.0">Scenario: Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here</a>
+
+                        </td>
+                        
+                            <td>
+            0%
+    </td>
+    <td>
+            <table class="timelineview" cellpadding="0" cellspacing="0">
+        <tr>
+    <td>
+        <a class="bar colorFailed" 
+           style="width: 199px;" 
+           title="1 failed" 
+                          href="#error_summary"
+        ></a>
+    </td>
+        </tr>
+    </table>
+
+    </td>
+    <td>1</td>
+    <td>0</td>
+    <td>1</td>
+    <td>0</td>
+    <td>0</td>
+    <td>0</td>
+        <td>00:00:01.4191082</td>
+
+                        
+                    </tr>
+            </table>
+
+        <h2>Execution Details</h2>
+            <a name="t-1680262139.0" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes, Sydney (in WeatherApi, WeatherData-Coordinates)</h3>
+            <ul>
+                <li>Status: Failed</li>
+                <li>Start time: 04/01/2021 5:43:52 PM</li>
+                <li>Execution time (sec): 3.9079762</li>
+                <li>Thread: #0</li>
+                <li>Error:   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its -33.86 and 151.21</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;-33.86&quot;, &quot;151.21&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.707s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (2.8s)</pre>
+                        </td>
+                        <td>Succeeded in 2.781s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.1s)</pre>
+                        </td>
+                        <td>Succeeded in 0.137s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                                                                               | clouds | snow | precip | sunrise | sunset | date_time | temp |
+  | All parameters are approximations. Values in this table are not utilized but can be used with small change. There is also a bug such that sunrise time is after sunset | 0      | 0    | 0      |         |        | 0         | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">error:   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;</pre>
+                                <div class="errorMessage">  Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+</div>
+                                <pre class="stackTrace">NUnit.Framework.AssertionException:   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+   at NUnit.Framework.Assert.ReportFailure(String message) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 395
+   at NUnit.Framework.Assert.ReportFailure(ConstraintResult result, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 383
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 241
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 222
+   at WeatherApi.Steps.WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(Table table) in C:\WeatherApi\SpecFlowProject3\Steps\WeatherData.cs:line 102
+   at TechTalk.SpecFlow.Bindings.BindingInvoker.InvokeBinding(IBinding binding, IContextManager contextManager, Object[] arguments, ITestTracer testTracer, TimeSpan&amp; duration) in D:\a\1\s\TechTalk.SpecFlow\Bindings\BindingInvoker.cs:line 69
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 514
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments)
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStep(IContextManager contextManager, StepInstance stepInstance) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 435
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.OnAfterLastStep() in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 260
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.OnAfterLastStep()
+   at TechTalk.SpecFlow.TestRunner.CollectScenarioErrors() in D:\a\1\s\TechTalk.SpecFlow\TestRunner.cs:line 60
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.ScenarioCleanup()
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes(String comments, String latitude, String longitude, String expectedResponse, String[] exampleTags) in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 8
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes_Sydney() in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 4
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.ExecuteInternal(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.Execute(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TestNodeTask.Execute()</pre>
+                        </td>
+                        <td>Failed in 0.167s</td>
+                    </tr>
+            </table>
+            <a name="t-1680262139.1" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes, Sydney (in WeatherApi, WeatherData-Coordinates) retry #1</h3>
+            <ul>
+                <li>Status: Failed</li>
+                <li>Start time: 04/01/2021 5:43:56 PM</li>
+                <li>Execution time (sec): 1.1512583</li>
+                <li>Thread: #0</li>
+                <li>Error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its -33.86 and 151.21</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;-33.86&quot;, &quot;151.21&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.0s)</pre>
+                        </td>
+                        <td>Succeeded in 1.023s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.019s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                                                                               | clouds | snow | precip | sunrise | sunset | date_time | temp |
+  | All parameters are approximations. Values in this table are not utilized but can be used with small change. There is also a bug such that sunrise time is after sunset | 0      | 0    | 0      |         |        | 0         | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;</pre>
+                                <div class="errorMessage">Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+</div>
+                                <pre class="stackTrace">NUnit.Framework.AssertionException: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+
+   at NUnit.Framework.Assert.ReportFailure(String message) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 395
+   at NUnit.Framework.Assert.ReportFailure(ConstraintResult result, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 383
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 241
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 222
+   at WeatherApi.Steps.WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(Table table) in C:\WeatherApi\SpecFlowProject3\Steps\WeatherData.cs:line 102
+   at TechTalk.SpecFlow.Bindings.BindingInvoker.InvokeBinding(IBinding binding, IContextManager contextManager, Object[] arguments, ITestTracer testTracer, TimeSpan&amp; duration) in D:\a\1\s\TechTalk.SpecFlow\Bindings\BindingInvoker.cs:line 69
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 514
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments)
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStep(IContextManager contextManager, StepInstance stepInstance) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 435
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.OnAfterLastStep() in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 260
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.OnAfterLastStep()
+   at TechTalk.SpecFlow.TestRunner.CollectScenarioErrors() in D:\a\1\s\TechTalk.SpecFlow\TestRunner.cs:line 60
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.ScenarioCleanup()
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes(String comments, String latitude, String longitude, String expectedResponse, String[] exampleTags) in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 8
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes_Sydney() in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 4
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.ExecuteInternal(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.Execute(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TestNodeTask.Execute()</pre>
+                        </td>
+                        <td>Failed in 0.087s</td>
+                    </tr>
+            </table>
+            <a name="t-1680262139.2" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes, Sydney (in WeatherApi, WeatherData-Coordinates) retry #2</h3>
+            <ul>
+                <li>Status: Failed</li>
+                <li>Start time: 04/01/2021 5:43:57 PM</li>
+                <li>Execution time (sec): 1.0873829</li>
+                <li>Thread: #0</li>
+                <li>Error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its -33.86 and 151.21</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;-33.86&quot;, &quot;151.21&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.0s)</pre>
+                        </td>
+                        <td>Succeeded in 1.021s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.021s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                                                                               | clouds | snow | precip | sunrise | sunset | date_time | temp |
+  | All parameters are approximations. Values in this table are not utilized but can be used with small change. There is also a bug such that sunrise time is after sunset | 0      | 0    | 0      |         |        | 0         | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Sydney] -->
+                            <pre class="log">error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;</pre>
+                                <div class="errorMessage">Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+</div>
+                                <pre class="stackTrace">NUnit.Framework.AssertionException: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+
+   at NUnit.Framework.Assert.ReportFailure(String message) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 395
+   at NUnit.Framework.Assert.ReportFailure(ConstraintResult result, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 383
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 241
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 222
+   at WeatherApi.Steps.WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(Table table) in C:\WeatherApi\SpecFlowProject3\Steps\WeatherData.cs:line 102
+   at TechTalk.SpecFlow.Bindings.BindingInvoker.InvokeBinding(IBinding binding, IContextManager contextManager, Object[] arguments, ITestTracer testTracer, TimeSpan&amp; duration) in D:\a\1\s\TechTalk.SpecFlow\Bindings\BindingInvoker.cs:line 69
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 514
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments)
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStep(IContextManager contextManager, StepInstance stepInstance) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 435
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.OnAfterLastStep() in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 260
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.OnAfterLastStep()
+   at TechTalk.SpecFlow.TestRunner.CollectScenarioErrors() in D:\a\1\s\TechTalk.SpecFlow\TestRunner.cs:line 60
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.ScenarioCleanup()
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes(String comments, String latitude, String longitude, String expectedResponse, String[] exampleTags) in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 8
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes_Sydney() in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 4
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.ExecuteInternal(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.Execute(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TestNodeTask.Execute()</pre>
+                        </td>
+                        <td>Failed in 0.031s</td>
+                    </tr>
+            </table>
+            <a name="t-49304721.0" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherApi, WeatherData-Coordinates)</h3>
+            <ul>
+                <li>Status: Failed</li>
+                <li>Start time: 04/01/2021 5:43:59 PM</li>
+                <li>Execution time (sec): 1.1339538</li>
+                <li>Thread: #0</li>
+                <li>Error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its 35.65 and 139.74</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;35.65&quot;, &quot;139.74&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.005s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.1s)</pre>
+                        </td>
+                        <td>Succeeded in 1.09s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.007s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                                                                               | clouds | snow | precip | sunrise | sunset | date_time | temp |
+  | All parameters are approximations. Values in this table are not utilized but can be used with small change. There is also a bug such that sunrise time is after sunset | 0      | 0    | 0      |         |        | 0         | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;</pre>
+                                <div class="errorMessage">Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+</div>
+                                <pre class="stackTrace">NUnit.Framework.AssertionException: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+
+   at NUnit.Framework.Assert.ReportFailure(String message) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 395
+   at NUnit.Framework.Assert.ReportFailure(ConstraintResult result, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 383
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 241
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 222
+   at WeatherApi.Steps.WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(Table table) in C:\WeatherApi\SpecFlowProject3\Steps\WeatherData.cs:line 102
+   at TechTalk.SpecFlow.Bindings.BindingInvoker.InvokeBinding(IBinding binding, IContextManager contextManager, Object[] arguments, ITestTracer testTracer, TimeSpan&amp; duration) in D:\a\1\s\TechTalk.SpecFlow\Bindings\BindingInvoker.cs:line 69
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 514
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments)
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStep(IContextManager contextManager, StepInstance stepInstance) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 435
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.OnAfterLastStep() in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 260
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.OnAfterLastStep()
+   at TechTalk.SpecFlow.TestRunner.CollectScenarioErrors() in D:\a\1\s\TechTalk.SpecFlow\TestRunner.cs:line 60
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.ScenarioCleanup()
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes(String comments, String latitude, String longitude, String expectedResponse, String[] exampleTags) in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 8
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes_Tokyo() in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 4
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.ExecuteInternal(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.Execute(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TestNodeTask.Execute()</pre>
+                        </td>
+                        <td>Failed in 0.023s</td>
+                    </tr>
+            </table>
+            <a name="t-49304721.1" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherApi, WeatherData-Coordinates) retry #1</h3>
+            <ul>
+                <li>Status: Failed</li>
+                <li>Start time: 04/01/2021 5:44:00 PM</li>
+                <li>Execution time (sec): 1.1049686</li>
+                <li>Thread: #0</li>
+                <li>Error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its 35.65 and 139.74</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;35.65&quot;, &quot;139.74&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.006s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.1s)</pre>
+                        </td>
+                        <td>Succeeded in 1.065s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                                                                               | clouds | snow | precip | sunrise | sunset | date_time | temp |
+  | All parameters are approximations. Values in this table are not utilized but can be used with small change. There is also a bug such that sunrise time is after sunset | 0      | 0    | 0      |         |        | 0         | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;</pre>
+                                <div class="errorMessage">Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+</div>
+                                <pre class="stackTrace">NUnit.Framework.AssertionException: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+
+   at NUnit.Framework.Assert.ReportFailure(String message) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 395
+   at NUnit.Framework.Assert.ReportFailure(ConstraintResult result, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 383
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 241
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 222
+   at WeatherApi.Steps.WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(Table table) in C:\WeatherApi\SpecFlowProject3\Steps\WeatherData.cs:line 102
+   at TechTalk.SpecFlow.Bindings.BindingInvoker.InvokeBinding(IBinding binding, IContextManager contextManager, Object[] arguments, ITestTracer testTracer, TimeSpan&amp; duration) in D:\a\1\s\TechTalk.SpecFlow\Bindings\BindingInvoker.cs:line 69
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 514
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments)
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStep(IContextManager contextManager, StepInstance stepInstance) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 435
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.OnAfterLastStep() in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 260
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.OnAfterLastStep()
+   at TechTalk.SpecFlow.TestRunner.CollectScenarioErrors() in D:\a\1\s\TechTalk.SpecFlow\TestRunner.cs:line 60
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.ScenarioCleanup()
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes(String comments, String latitude, String longitude, String expectedResponse, String[] exampleTags) in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 8
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes_Tokyo() in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 4
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.ExecuteInternal(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.Execute(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TestNodeTask.Execute()</pre>
+                        </td>
+                        <td>Failed in 0.011s</td>
+                    </tr>
+            </table>
+            <a name="t-49304721.2" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes, Tokyo (in WeatherApi, WeatherData-Coordinates) retry #2</h3>
+            <ul>
+                <li>Status: Failed</li>
+                <li>Start time: 04/01/2021 5:44:01 PM</li>
+                <li>Execution time (sec): 1.0531834</li>
+                <li>Thread: #0</li>
+                <li>Error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  6)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its 35.65 and 139.74</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;35.65&quot;, &quot;139.74&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.007s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.986s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                                                                               | clouds | snow | precip | sunrise | sunset | date_time | temp |
+  | All parameters are approximations. Values in this table are not utilized but can be used with small change. There is also a bug such that sunrise time is after sunset | 0      | 0    | 0      |         |        | 0         | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes, Tokyo] -->
+                            <pre class="log">error: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  6)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;</pre>
+                                <div class="errorMessage">Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  6)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+</div>
+                                <pre class="stackTrace">NUnit.Framework.AssertionException: Multiple failures or warnings in test:
+  1)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  2)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  3)   Expected: less than &quot;09:10&quot;
+  But was:  &quot;18:50&quot;
+
+  4)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  5)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+  6)   Expected: less than &quot;07:40&quot;
+  But was:  &quot;21:50&quot;
+
+
+   at NUnit.Framework.Assert.ReportFailure(String message) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 395
+   at NUnit.Framework.Assert.ReportFailure(ConstraintResult result, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.cs:line 383
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression, String message, Object[] args) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 241
+   at NUnit.Framework.Assert.That[TActual](TActual actual, IResolveConstraint expression) in D:\a\1\s\src\NUnitFramework\framework\Assert.That.cs:line 222
+   at WeatherApi.Steps.WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(Table table) in C:\WeatherApi\SpecFlowProject3\Steps\WeatherData.cs:line 102
+   at TechTalk.SpecFlow.Bindings.BindingInvoker.InvokeBinding(IBinding binding, IContextManager contextManager, Object[] arguments, ITestTracer testTracer, TimeSpan&amp; duration) in D:\a\1\s\TechTalk.SpecFlow\Bindings\BindingInvoker.cs:line 69
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 514
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments)
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStep(IContextManager contextManager, StepInstance stepInstance) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 435
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.OnAfterLastStep() in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 260
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.OnAfterLastStep()
+   at TechTalk.SpecFlow.TestRunner.CollectScenarioErrors() in D:\a\1\s\TechTalk.SpecFlow\TestRunner.cs:line 60
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.ScenarioCleanup()
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes(String comments, String latitude, String longitude, String expectedResponse, String[] exampleTags) in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 8
+   at WeatherApi.Features.WeatherData_CoordinatesFeature.WeatherDataBasedOnLatitudesAndLongitudes_Tokyo() in C:\WeatherApi\SpecFlowProject3\Features\Weather-Coordinates.feature:line 4
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.ExecuteInternal(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.Execute(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TestNodeTask.Execute()</pre>
+                        </td>
+                        <td>Failed in 0.05s</td>
+                    </tr>
+            </table>
+            <a name="t1119696595.0" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0 (in WeatherApi, WeatherData-Coordinates)</h3>
+            <ul>
+                <li>Status: Succeeded</li>
+                <li>Start time: 04/01/2021 5:44:02 PM</li>
+                <li>Execution time (sec): 1.0194543</li>
+                <li>Thread: #0</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its  and 151.21</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;&quot;, &quot;151.21&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.005s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.0s)</pre>
+                        </td>
+                        <td>Succeeded in 1.006s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;BadRequest&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 0] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;BadRequest&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.002s</td>
+                    </tr>
+            </table>
+            <a name="t-1478196300.0" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1 (in WeatherApi, WeatherData-Coordinates)</h3>
+            <ul>
+                <li>Status: Succeeded</li>
+                <li>Start time: 04/01/2021 5:44:03 PM</li>
+                <li>Execution time (sec): 1.2483134</li>
+                <li>Thread: #0</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its -33.86 and</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;-33.86&quot;, &quot;&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.004s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.2s)</pre>
+                        </td>
+                        <td>Succeeded in 1.23s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;BadRequest&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 1] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;BadRequest&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.008s</td>
+                    </tr>
+            </table>
+            <a name="t-1611506203.0" />
+            <h3>Scenario: Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2 (in WeatherApi, WeatherData-Coordinates)</h3>
+            <ul>
+                <li>Status: Succeeded</li>
+                <li>Start time: 04/01/2021 5:44:04 PM</li>
+                <li>Execution time (sec): 1.0257142</li>
+                <li>Thread: #0</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details based on its  and</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsForBasedOnItsAnd(&quot;&quot;, &quot;&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.005s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.0s)</pre>
+                        </td>
+                        <td>Succeeded in 1.011s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;BadRequest&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on Latitudes and Longitudes - Negative Scenarios, Variant 2] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;BadRequest&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+            </table>
+            <a name="t1984894362.0" />
+            <h3>Scenario: Weather Data based for a non-authenticated user, Sydney (in WeatherApi, WeatherData - NonAuthenticatedUser)</h3>
+            <ul>
+                <li>Status: Succeeded</li>
+                <li>Start time: 04/01/2021 5:44:05 PM</li>
+                <li>Execution time (sec): 1.0189957</li>
+                <li>Thread: #0</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details using &lt; PostalCode &gt; and &lt; CountryCode &gt;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based for a non-authenticated user, Sydney] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsUsingAnd(&quot;&lt; PostalCode &gt;&quot;, &quot;&lt; CountryCode &gt;&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.006s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as a non-authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based for a non-authenticated user, Sydney] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnNon_AuthenticatedUser() (1.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.997s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;Forbidden&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based for a non-authenticated user, Sydney] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;Forbidden&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+            </table>
+            <a name="t-353816698.0" />
+            <h3>Scenario: Weather Data based on PostalCode, Only Postal Code (in WeatherApi, WeatherData-PostalCode)</h3>
+            <ul>
+                <li>Status: Succeeded</li>
+                <li>Start time: 04/01/2021 5:44:06 PM</li>
+                <li>Execution time (sec): 2.0165906</li>
+                <li>Thread: #0</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details using 2000 and</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on PostalCode, Only Postal Code] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsUsingAnd(&quot;2000&quot;, &quot;&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.014s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on PostalCode, Only Postal Code] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (2.0s)</pre>
+                        </td>
+                        <td>Succeeded in 1.99s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on PostalCode, Only Postal Code] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.002s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                  | clouds | snow |
+  | All parameters are approximations. Values in this tble are not utilized but can be used with small change | 0      | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on PostalCode, Only Postal Code] -->
+                            <pre class="log">done: WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(&lt;table&gt;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+            </table>
+            <a name="t-189205882.0" />
+            <h3>Scenario: Weather Data based on PostalCode, Postal Code and correct Country Code (in WeatherApi, WeatherData-PostalCode)</h3>
+            <ul>
+                <li>Status: Succeeded</li>
+                <li>Start time: 04/01/2021 5:44:08 PM</li>
+                <li>Execution time (sec): 3.7096618</li>
+                <li>Thread: #0</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details using 2000 and AU</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on PostalCode, Postal Code and correct Country Code] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsUsingAnd(&quot;2000&quot;, &quot;AU&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.003s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on PostalCode, Postal Code and correct Country Code] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (3.7s)</pre>
+                        </td>
+                        <td>Succeeded in 3.694s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;OK&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on PostalCode, Postal Code and correct Country Code] -->
+                            <pre class="log">done: WeatherData.ThenTheApiResponseCodeShouldBe(&quot;OK&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.002s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">And I receive the weather forecast with the following parameters
+  --- table step argument ---
+  | Comments                                                                                                  | clouds | snow |
+  | All parameters are approximations. Values in this tble are not utilized but can be used with small change | 0      | 0    |</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on PostalCode, Postal Code and correct Country Code] -->
+                            <pre class="log">done: WeatherData.ThenIReceiveTheWeatherForecastWithTheFollowingParameters(&lt;table&gt;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.004s</td>
+                    </tr>
+            </table>
+            <a name="t-127581190.0" />
+            <h3>Scenario: Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here (in WeatherApi, WeatherData-PostalCode)</h3>
+            <ul>
+                <li>Status: Failed</li>
+                <li>Start time: 04/01/2021 5:44:12 PM</li>
+                <li>Execution time (sec): 1.4191082</li>
+                <li>Thread: #0</li>
+                <li>Error: Expected apiResult.StatusCode to be NoContent, but found OK.</li>
+            </ul>
+            <table class="testEvents">
+                <tr>
+                    <th>Steps</th>
+                    <th>Trace</th>
+                    <th>Result</th>
+                </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Given I am a user who wants to get the weather details using 2000 and JP</pre>
+                        </td>
+                        <td>
+                            <!-- [TestArrange: Scenario - Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here] -->
+                            <pre class="log">done: WeatherData.GivenIAmAUserWhoWantsToGetTheWeatherDetailsUsingAnd(&quot;2000&quot;, &quot;JP&quot;) (0.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.01s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">When I look up the weather forecast as an authenticated user</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAct: Scenario - Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here] -->
+                            <pre class="log">done: WeatherData.WhenILookUpTheWeatherForecastAsAnAuthenticatedUser() (1.0s)</pre>
+                        </td>
+                        <td>Succeeded in 0.974s</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <pre class="log">Then the Api response code should be &#39;NoContent&#39;</pre>
+                        </td>
+                        <td>
+                            <!-- [TestAssert: Scenario - Weather Data based on PostalCode - Negative Scenario, Postal Code and wrong Country Code. There is a potential bug here] -->
+                            <pre class="log">error: Expected apiResult.StatusCode to be NoContent, but found OK.</pre>
+                                <div class="errorMessage">Expected apiResult.StatusCode to be NoContent, but found OK.</div>
+                                <pre class="stackTrace">NUnit.Framework.AssertionException: Expected apiResult.StatusCode to be NoContent, but found OK.
+   at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message) in C:\projects\fluentassertions-vf06b\Src\FluentAssertions\Execution\LateBoundTestFramework.cs:line 16
+   at FluentAssertions.Execution.TestFrameworkProvider.Throw(String message) in C:\projects\fluentassertions-vf06b\Src\FluentAssertions\Execution\TestFrameworkProvider.cs:line 41
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message) in C:\projects\fluentassertions-vf06b\Src\FluentAssertions\Execution\DefaultAssertionStrategy.cs:line 30
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc) in C:\projects\fluentassertions-vf06b\Src\FluentAssertions\Execution\AssertionScope.cs:line 225
+   at FluentAssertions.Execution.AssertionScope.FailWith(Func`1 failReasonFunc) in C:\projects\fluentassertions-vf06b\Src\FluentAssertions\Execution\AssertionScope.cs:line 196
+   at FluentAssertions.Execution.AssertionScope.FailWith(String message, Object[] args) in C:\projects\fluentassertions-vf06b\Src\FluentAssertions\Execution\AssertionScope.cs:line 238
+   at FluentAssertions.Primitives.ObjectAssertions.Be(Object expected, String because, Object[] becauseArgs) in C:\projects\fluentassertions-vf06b\Src\FluentAssertions\Primitives\ObjectAssertions.cs:line 37
+   at WeatherApi.Steps.WeatherData.ThenTheApiResponseCodeShouldBe(String status) in C:\WeatherApi\SpecFlowProject3\Steps\WeatherData.cs:line 66
+   at TechTalk.SpecFlow.Bindings.BindingInvoker.InvokeBinding(IBinding binding, IContextManager contextManager, Object[] arguments, ITestTracer testTracer, TimeSpan&amp; duration) in D:\a\1\s\TechTalk.SpecFlow\Bindings\BindingInvoker.cs:line 75
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 514
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.ExecuteStepMatch(BindingMatch match, Object[] arguments)
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.ExecuteStep(IContextManager contextManager, StepInstance stepInstance) in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 435
+   at TechTalk.SpecFlow.Infrastructure.TestExecutionEngine.OnAfterLastStep() in D:\a\1\s\TechTalk.SpecFlow\Infrastructure\TestExecutionEngine.cs:line 260
+   at TechTalk.SpecRun.SpecFlowPlugin.Runtime.RunnerTestExecutionEngine.OnAfterLastStep()
+   at TechTalk.SpecFlow.TestRunner.CollectScenarioErrors() in D:\a\1\s\TechTalk.SpecFlow\TestRunner.cs:line 60
+   at WeatherApi.Features.WeatherData_PostalCodeFeature.ScenarioCleanup()
+   at WeatherApi.Features.WeatherData_PostalCodeFeature.WeatherDataBasedOnPostalCode_NegativeScenario(String comments, String postalCode, String countryCode, String expectedResponse, String[] exampleTags) in C:\WeatherApi\SpecFlowProject3\Features\Weather-PostalCode.feature:line 20
+   at WeatherApi.Features.WeatherData_PostalCodeFeature.WeatherDataBasedOnPostalCode_NegativeScenario_PostalCodeAndWrongCountryCode_ThereIsAPotentialBugHere() in C:\WeatherApi\SpecFlowProject3\Features\Weather-PostalCode.feature:line 17
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.ExecuteInternal(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TaskExecutors.StaticOrInstanceMethodExecutor.Execute(ITestThreadExecutionContext testThreadExecutionContext)
+   at TechTalk.SpecRun.Framework.TestNodeTask.Execute()</pre>
+                        </td>
+                        <td>Failed in 0.428s</td>
+                    </tr>
+            </table>
+	</body>
+</html>

@@ -23,7 +23,7 @@ namespace WeatherApi
             _apiClient.DefaultRequestHeaders.Accept.Clear();
             //In this case the response header was xml, as observed manually on Postman.
             _apiClient.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/xml"));
+                new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
         [AfterScenario]

@@ -64,10 +64,6 @@ namespace WeatherApi.Steps
         {
             var newStatus= Enum.Parse<HttpStatusCode>(status);
             apiResult.StatusCode.Should().Be(newStatus); 
-            if(status!="OK")
-            {
-                Assert.Pass();
-            }
         }
 
         [When(@"I look up the weather forecast as an authenticated user")]
