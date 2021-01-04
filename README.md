@@ -30,4 +30,6 @@
 **Reporting** - Even though Specflow tests are fairly detailed and gives you the information on failure, we can also have custom reports.
 
 **Steps**:
-Since I am using Specflow Runner, there is no need for any custom code/ manual step to generate a report. An HTML report will be automaticlly generated on each test run in the Test Results folder. A sample report has been enclosed alongside this code. 
+Since I am using Specflow Runner, there is no need for any custom code/ manual step to generate a report. An HTML report will be automaticlly generated on each test run in the Test Results folder. A sample report has been enclosed alongside this code. Please check the reportnamed - **CodeChallenge__2021-01-04T174348.html** under WeatherApi/SpecFlowProject3/.
+
+**Note** : When you download the code and run it , you can see the reports for each of your sucessive runs in ../WeatherApi/TestResults folder. 
