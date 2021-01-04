@@ -4,7 +4,7 @@
 
 **Editor :** Visual Studio 2019 Community edition
 
-**Language:** C# , Class Library Project with *Dot Net Core*
+**Language:** C# , Took Specflow Project with Specflow+Runner inbuilt
 
 **BDD:** Specflow
 
@@ -30,10 +30,4 @@
 **Reporting** - Even though Specflow tests are fairly detailed and gives you the information on failure, we can also have custom reports.
 
 **Steps**:
-1. Go to your project path and run the following command that will run the tests. It will create an xml file with Test results.
-dotnet test -l:trx;LogFileName=C:\Reports\Results.xml
-
-2. Now install Specflow.Exe on your local machine (it will already be there as you are using it ). Go to the path and run the following command to generate a html report.
-specflow.exe nunitexecutionreport --ProjectFile C:\CodeChallenge\WeatherApi\WeatherApi\WeatherApi.csproj --xmlTestResult C:\Reports\Results.xml --OutputFile C:\Reports\Results.html
-
-the tags --ProjectFile, --xmlTestResult and --OutputFile are self explanatory
+Since I am using Specflow Runner, there is no need for any custom code/ manual step to generate a report. An HTML report will be automaticlly generated on each test run in the Test Results folder. A sample report has been enclosed alongside this code. 
