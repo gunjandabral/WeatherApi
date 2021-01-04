@@ -27,7 +27,7 @@
 
 5)You will see all the tests in the Test Explorer. Run them all.
 
-**Reporting** - Even though Specflow tests are fairly detailed and gives you the information on failure, we can also have custom reports.
+**Reporting** - Even though Specflow tests are fairly detailed and gives you the information on failure, we can also have a consolidated report on each test run as explained in the steps below.
 
 **Steps**:
 Since I am using Specflow Runner, there is no need for any custom code/ manual step to generate a report. An HTML report will be automaticlly generated on each test run in the Test Results folder. A sample report has been enclosed alongside this code. Please check the report named - **CodeChallenge__2021-01-04T174348.html** under WeatherApi/SpecFlowProject3/.
